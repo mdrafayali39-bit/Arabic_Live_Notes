@@ -1,0 +1,35 @@
+{
+  "name": "arabic-live-notes",
+  "version": "1.0.0",
+  "description": "Live Arabic speech turned into English notes, plus dictation, running entirely on your own machine.",
+  "main": "electron/main.js",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.local.arabiclivenotes",
+    "productName": "Arabic Live Notes",
+    "files": [
+      "electron/**/*",
+      "renderer/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      { "from": "python", "to": "python", "filter": ["**/*", "!.venv/**"] },
+      { "from": "models", "to": "models" }
+    ],
+    "win": { "target": "nsis", "icon": "assets/icon.ico" },
+    "mac": { "target": "dmg", "category": "public.app-category.productivity" },
+    "linux": { "target": "AppImage", "category": "Office" }
+  }
+}

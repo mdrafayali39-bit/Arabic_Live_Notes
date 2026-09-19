@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src ws://127.0.0.1:* blob:; media-src blob: aln-recording:; worker-src blob:;" />
+  <title>Arabic Live Notes</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ------------------------------------------------------------- -->
+  <!-- Top rail                                                      -->
+  <!-- ------------------------------------------------------------- -->
+  <header class="rail">
+    <button id="menu-toggle" class="ghost icon-btn" title="Toggle Navigation Drawer" aria-label="Menu">☰</button>
+    <div class="rail-title">
+      <span class="mark" aria-hidden="true"></span>
+      <h1>Arabic Live Notes</h1>
+    </div>
+
+    <!-- Active Recording Header Bar -->
+    <div id="recording-bar" class="recording-bar" hidden>
+      <span class="rec-pill" id="rec-pill"><span class="rec-dot"></span> <span id="rec-pill-text">REC</span></span>
+      <span class="rec-timer" id="rec-timer">00:00:00</span>
+      <span class="rec-title-display" id="rec-title-display" title="Active Recording Title">Untitled Lecture</span>
+      <div class="rec-controls">
+        <button id="btn-rec-pause" class="ghost sm" title="Pause / Resume Recording">Pause</button>
+        <button id="btn-rec-stop" class="primary sm btn-stop-rec" title="Stop & Finalize Recording">Stop &amp; Save</button>
+      </div>
+    </div>
+
+    <p id="status" data-tone="idle">Ready. Pick where the sound is coming from and press start.</p>
+
+    <div class="rail-actions">
+      <button id="nav-history-btn" class="ghost" title="View past recordings">History</button>
+      <button id="settings-toggle" class="ghost">Settings</button>
+    </div>
+  </header>
+
+  <!-- Crash Recovery Banner -->
+  <div id="crash-recovery-banner" class="recovery-banner" hidden>
+    <div class="banner-content">
+      <span class="banner-icon">⚠️</span>
+      <div class="banner-text">
+        <strong>Recovered unfinished recording:</strong>
+        <span id="recovery-title">Lecture</span>
+        <span id="recovery-meta" class="banner-meta"></span>
+      </div>
+    </div>
+    <div class="banner-actions">
+      <button id="btn-recover-open" class="ghost sm">Open</button>
+      <button id="btn-recover-finalize" class="primary sm">Finalize &amp; Save</button>
+      <button id="btn-recover-delete" class="ghost sm btn-danger">Delete</button>
+    </div>
+  </div>
+
+  <!-- ------------------------------------------------------------- -->
+  <!-- Navigation Drawer                                             -->
+  <!-- ------------------------------------------------------------- -->
+  <div id="drawer-backdrop" class="drawer-backdrop"></div>
+  <nav id="nav-drawer" class="nav-drawer" aria-label="Main Navigation">
+    <div class="drawer-head">
+      <div class="drawer-brand">
+        <span class="mark" aria-hidden="true"></span>
+        <h2>Arabic Live Notes</h2>
+      </div>
+      <button id="drawer-close" class="ghost icon-btn" aria-label="Close menu">✕</button>
+    </div>
+
+    <ul class="drawer-nav">
+      <li>
+        <button class="drawer-link is-active" data-view="home">
+          <span class="nav-icon">🎙️</span> Live Recording &amp; Classroom
+        </button>
+      </li>
+      <li>
+        <button class="drawer-link" data-view="new-recording" id="drawer-new-rec-btn">
+          <span class="nav-icon">➕</span> New Recording Session
+        </button>
+      </li>
+      <li>
+        <button class="drawer-link" data-view="history" id="drawer-history-btn">
+          <span class="nav-icon">📚</span> Recording History
+        </button>
+      </li>
+      <li>
+        <button class="drawer-link" data-view="settings" id="drawer-settings-btn">
+          <span class="nav-icon">⚙️</span> Settings &amp; Storage
+        </button>
+      </li>
+    </ul>
+
+    <div class="drawer-storage-card">
+      <h3>Storage &amp; Backup</h3>
+      <div class="storage-item">
+        <span class="storage-label">Local Storage:</span>
+        <span class="storage-val is-ok">● Enabled</span>
+      </div>
+      <div class="storage-item">
+        <span class="storage-label">Google Drive:</span>
+        <span class="storage-val" id="drawer-gdrive-status">○ Disabled</span>
+      </div>
+      <button id="drawer-open-storage-btn" class="ghost sm full-w" style="margin-top: 8px;">Open Local Storage</button>
+    </div>
+
+    <div class="drawer-foot">
+      <span class="drawer-ver">v2.0 • Loss-Minimizing Speech Architecture</span>
+    </div>
+  </nav>
+
+  <!-- ------------------------------------------------------------- -->
+  <!-- Main Application Views                                        -->
+  <!-- ------------------------------------------------------------- -->
+  <main id="main-container">
+
+    <!-- ============================================================= -->
+    <!-- VIEW 1: Live Classroom Recording (Home)                       -->
+    <!-- ============================================================= -->
+    <div id="view-home" class="view-pane is-active">
+      <div class="classroom-layout">
+        
+        <!-- Left / Center: Reading Stage & Dictation Deck -->
+        <div class="stage-container">
+          
+          <!-- Reading Stage -->
+          <section class="stage" aria-labelledby="stage-heading">
+            <div class="stage-head">
+              <div class="channel-id">
+                <span class="dot" id="speaker-dot"></span>
+                <h2 id="stage-heading">Them, in English</h2>
+                <span class="state" id="speaker-state">Stopped</span>
+              </div>
+
+              <div class="meter" id="speaker-level" aria-hidden="true"></div>
+
+              <div class="stage-controls">
+                <select id="speaker-device" aria-label="Where their voice comes from"></select>
+                <div class="audio-switch" id="audio-output-switch" role="group" aria-label="Audio Output Mode">
+                  <button type="button" class="btn-audio-switch is-active" id="audio-opt-english" data-mode="english" title="Hear English translation via TTS">Audio: English</button>
+                  <button type="button" class="btn-audio-switch" id="audio-opt-original" data-mode="original" title="Hear original Arabic audio directly">Audio: Original</button>
+                </div>
+                <button id="speaker-toggle" class="primary">Start listening</button>
+              </div>
+            </div>
+
+            <div class="stream" id="speaker-stream">
+              <p class="empty" id="speaker-empty">Press start listening. Translated lines land here as the other person speaks.</p>
+            </div>
+
+            <div class="stage-foot">
+              <label class="check"><input type="checkbox" id="read-aloud" /> Read aloud in English</label>
+              <button id="stop-speaking" class="ghost" hidden>Stop reading</button>
+              <span class="hint-inline" id="voice-warning" hidden>No English voice installed</span>
+              <div class="spacer"></div>
+              <label class="check"><input type="checkbox" id="speaker-follow" checked /> Follow newest</label>
+              <button id="polish" class="ghost" hidden>Polish with my agent</button>
+              <button id="speaker-clear" class="ghost">Clear</button>
+              <button id="speaker-copy" class="ghost">Copy all</button>
+            </div>
+          </section>
+
+          <!-- Dictation Deck -->
+          <section class="deck" aria-labelledby="deck-heading">
+            <div class="deck-head">
+              <div class="channel-id">
+                <span class="dot" id="mine-dot"></span>
+                <h2 id="deck-heading">Me, written down</h2>
+                <span class="state" id="mine-state">Stopped</span>
+              </div>
+
+              <div class="meter meter-mine" id="mine-level" aria-hidden="true"></div>
+
+              <div class="deck-controls">
+                <select id="mine-device" aria-label="Your microphone"></select>
+                <button id="mine-toggle" class="primary primary-mine">Start dictating</button>
+              </div>
+            </div>
+
+            <textarea id="dictation" spellcheck="true"
+              placeholder="Speak and your words appear here, ready to edit and paste anywhere."></textarea>
+
+            <div class="deck-foot">
+              <span class="count" id="mine-count">0 words</span>
+              <div class="spacer"></div>
+              <button id="mine-clear" class="ghost">Clear</button>
+              <button id="mine-copy" class="ghost">Copy</button>
+            </div>
+          </section>
+        </div>
+
+        <!-- Right: Live Timestamped Notes Panel -->
+        <aside class="live-notes-sidebar" aria-label="Live Lecture Notes">
+          <div class="notes-head">
+            <h3>Lecture Notes</h3>
+            <span class="notes-badge" id="live-notes-count">0 notes</span>
+          </div>
+
+          <div class="note-composer">
+            <input type="text" id="live-note-input" placeholder="Type a note and press Enter..." aria-label="Add timestamped note" />
+            <button id="btn-add-live-note" class="ghost sm" title="Add Note at current recording timestamp">Add</button>
+          </div>
+
+          <div class="live-notes-list" id="live-notes-list">
+            <p class="empty-notes" id="notes-empty-msg">Notes taken during the lecture will appear here with clickable timestamps.</p>
+          </div>
+        </aside>
+
+      </div>
+    </div>
+
+    <!-- ============================================================= -->
+    <!-- VIEW 2: Recording History                                     -->
+    <!-- ============================================================= -->
+    <div id="view-history" class="view-pane">
+      <div class="history-container">
+        
+        <div class="history-header">
+          <div class="history-title-area">
+            <h2>Recording History</h2>
+            <p class="history-subtitle">Persistent local recordings, transcripts, translations, and notes.</p>
+          </div>
+          <div class="history-actions">
+            <input type="search" id="history-search" class="search-input" placeholder="Search recordings, transcripts, notes..." />
+            <button id="btn-history-refresh" class="ghost">Refresh</button>
+            <button id="btn-history-new-rec" class="primary">New Recording</button>
+          </div>
+        </div>
+
+        <div class="history-list" id="history-list">
+          <div class="history-loading" id="history-loading">Loading persistent recordings...</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================= -->
+    <!-- VIEW 3: Recording Detail & Playback                           -->
+    <!-- ============================================================= -->
+    <div id="view-detail" class="view-pane">
+      <div class="detail-container">
+        
+        <div class="detail-header">
+          <button id="btn-detail-back" class="ghost sm back-btn">← Back to History</button>
+          
+          <div class="detail-title-group">
+            <h2 id="detail-title">Lecture Details</h2>
+            <div class="detail-meta-pills" id="detail-meta-pills">
+              <span class="meta-pill" id="detail-date">Date</span>
+              <span class="meta-pill" id="detail-duration">0 min</span>
+              <span class="meta-pill" id="detail-lang">Arabic → English</span>
+              <span class="meta-pill is-success" id="detail-local-status">Local ✓</span>
+              <span class="meta-pill" id="detail-cloud-status">Cloud ○</span>
+            </div>
+          </div>
+
+          <div class="detail-top-actions">
+            <button id="btn-detail-backup" class="ghost sm" title="Back up to Google Drive">Back up to Drive</button>
+            <button id="btn-detail-open-drive" class="ghost sm" title="Open folder in Google Drive" hidden>Open in Drive</button>
+            <button id="btn-detail-export" class="ghost sm">Export</button>
+            <button id="btn-detail-delete" class="ghost sm btn-danger">Delete</button>
+          </div>
+        </div>
+
+        <!-- Interactive Audio Player Bar -->
+        <div class="detail-player-bar" id="detail-player-bar">
+          <div class="player-controls">
+            <audio id="detail-audio" preload="metadata"></audio>
+            <button id="btn-audio-play-pause" class="primary sm player-btn">▶ Play</button>
+            <span class="player-time" id="player-time-display">00:00 / 00:00</span>
+            <input type="range" id="player-progress" class="player-seeker" min="0" max="100" value="0" step="0.1" />
+            <div class="player-speed">
+              <button class="ghost xs speed-btn is-active" data-speed="1.0">1.0x</button>
+              <button class="ghost xs speed-btn" data-speed="1.25">1.25x</button>
+              <button class="ghost xs speed-btn" data-speed="1.5">1.5x</button>
+              <button class="ghost xs speed-btn" data-speed="2.0">2.0x</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Split Content: Synchronized Transcript & Timestamped Notes -->
+        <div class="detail-body-split">
+          
+          <!-- Transcript Column -->
+          <div class="detail-transcript-col">
+            <div class="col-head">
+              <h3>Synchronized Transcript</h3>
+              <span class="hint-inline">Click any segment to jump audio</span>
+            </div>
+            <div class="detail-transcript-list" id="detail-transcript-list">
+              <p class="empty">No transcript segments recorded.</p>
+            </div>
+          </div>
+
+          <!-- Notes Column -->
+          <div class="detail-notes-col">
+            <div class="col-head">
+              <h3>Lecture Notes</h3>
+              <span class="notes-badge" id="detail-notes-count">0 notes</span>
+            </div>
+            
+            <div class="detail-note-composer">
+              <input type="text" id="detail-new-note-input" placeholder="Add a timestamped note at current playhead..." />
+              <button id="btn-detail-add-note" class="ghost sm">Add</button>
+            </div>
+
+            <div class="detail-notes-list" id="detail-notes-list">
+              <p class="empty">No notes taken for this recording.</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="footnote"><span id="footer-note"></span></footer>
+
+  <!-- ------------------------------------------------------------- -->
+  <!-- Delete Confirmation Modal                                     -->
+  <!-- ------------------------------------------------------------- -->
+  <dialog id="delete-modal" class="app-modal">
+    <div class="modal-card">
+      <h3>Delete Recording</h3>
+      <p>This removes the local audio, transcript, translation, and notes from this computer.</p>
+      
+      <div class="field check" id="modal-cloud-delete-group" style="margin: 14px 0;" hidden>
+        <label>
+          <input type="checkbox" id="modal-cloud-delete-check" />
+          Also delete Google Drive cloud backup
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button id="modal-cancel-btn" class="ghost">Cancel</button>
+        <button id="modal-confirm-delete-btn" class="primary btn-danger">Delete</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ------------------------------------------------------------- -->
+  <!-- Settings drawer                                                -->
+  <!-- ------------------------------------------------------------- -->
+  <aside id="settings" class="settings">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button id="settings-close-btn" class="ghost icon-btn" aria-label="Close Settings">✕</button>
+    </div>
+
+    <!-- Storage & Google Drive Section -->
+    <h3>Storage &amp; Cloud Backup</h3>
+    
+    <div class="storage-settings-block">
+      <div class="storage-status-row">
+        <div>
+          <strong>Local Recordings</strong>
+          <p class="hint">Primary high-fidelity storage on this computer.</p>
+        </div>
+        <span class="status-badge is-ok">● Enabled</span>
+      </div>
+      <div class="field" style="margin-top: 8px;">
+        <label>Storage Location</label>
+        <div class="path-display" id="settings-storage-path">Loading storage path...</div>
+      </div>
+      <button id="btn-settings-open-storage" class="ghost sm" style="margin-bottom: 16px;">Open Storage Folder</button>
+
+      <div class="storage-divider"></div>
+
+      <div class="storage-status-row">
+        <div>
+          <strong>Google Drive Backup</strong>
+          <p class="hint">Optional asynchronous cloud backup to visible folder.</p>
+        </div>
+        <span class="status-badge" id="settings-gdrive-badge">○ Disabled</span>
+      </div>
+
+      <div id="gdrive-disconnected-pane">
+        <p class="hint">Back up lecture audio, transcripts, and notes to your Google Drive in a dedicated <code>ArabicLiveNotes Recordings</code> folder.</p>
+        <button id="btn-settings-connect-gdrive" class="primary sm" style="margin-top: 10px;">Connect Google Drive</button>
+      </div>
+
+      <div id="gdrive-connected-pane" hidden>
+        <div class="field" style="margin-top: 8px;">
+          <label>Connected Account</label>
+          <div class="path-display" id="settings-gdrive-email">user@gmail.com</div>
+        </div>
+        <div class="field">
+          <label>Backup Folder</label>
+          <div class="path-display">ArabicLiveNotes Recordings</div>
+        </div>
+        <div class="btn-row" style="margin-top: 10px; display: flex; gap: 8px;">
+          <button id="btn-settings-open-drive" class="ghost sm">Open Drive Folder</button>
+          <button id="btn-settings-disconnect-gdrive" class="ghost sm btn-danger">Disconnect</button>
+        </div>
+      </div>
+    </div>
+
+    <h3>Speech Engine Model</h3>
+    <div class="field">
+      <label for="set-model">Model</label>
+      <select id="set-model">
+        <option value="tiny">tiny — fastest, roughest</option>
+        <option value="base">base</option>
+        <option value="small">small — good balance for Arabic</option>
+        <option value="medium">medium — better, needs a strong machine</option>
+        <option value="large-v3">large-v3 — best quality, slowest</option>
+        <option value="turbo">turbo — fast, but weak at translating</option>
+      </select>
+      <p class="hint">Changing this reloads the engine next time you start listening.</p>
+    </div>
+
+    <h3>Them (Speaker)</h3>
+    <div class="field">
+      <label for="set-speaker-language">Language they speak</label>
+      <select id="set-speaker-language">
+        <option value="ar">Arabic</option>
+        <option value="en">English</option>
+        <option value="ur">Urdu</option>
+        <option value="hi">Hindi</option>
+        <option value="fa">Persian</option>
+        <option value="fr">French</option>
+        <option value="auto">Detect each time</option>
+      </select>
+      <p class="hint">Naming the language is more reliable than detection on short pieces of speech.</p>
+    </div>
+    <div class="field">
+      <label for="set-speaker-task">Show their words as</label>
+      <select id="set-speaker-task">
+        <option value="translate">English</option>
+        <option value="transcribe">The language they spoke</option>
+      </select>
+    </div>
+    <label class="check"><input type="checkbox" id="set-show-source" /> Also show the original Arabic under each line</label>
+    <p class="hint">Shows the verified Arabic source text directly underneath the English translation.</p>
+
+    <h3>Reading aloud (TTS)</h3>
+    <div class="field">
+      <label for="set-voice">Voice</label>
+      <select id="set-voice"></select>
+      <p class="hint">These come from Windows. To add more, open Windows Settings, then
+        Time &amp; language, Speech, and add a voice.</p>
+    </div>
+    <div class="field">
+      <label for="set-rate">Speaking speed <span id="rate-value" class="value"></span></label>
+      <input type="range" id="set-rate" min="0.6" max="2" step="0.05" />
+      <p class="hint">Raise this if the reading falls behind the speaker. Utterances are
+        spoken in strict sequential order without dropping lecture notes.</p>
+    </div>
+
+    <h3>Me (Dictation)</h3>
+    <div class="field">
+      <label for="set-my-language">Language I speak</label>
+      <select id="set-my-language">
+        <option value="ar">Arabic</option>
+        <option value="en">English</option>
+        <option value="ur">Urdu</option>
+        <option value="hi">Hindi</option>
+        <option value="auto">Detect each time</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="set-my-task">Write my words as</label>
+      <select id="set-my-task">
+        <option value="translate">English</option>
+        <option value="transcribe">The language I spoke</option>
+      </select>
+    </div>
+
+    <h3>Listening &amp; VAD Sensitivity</h3>
+    <div class="field">
+      <label for="set-silence">Pause before a line is finished <span id="silence-value" class="value"></span></label>
+      <input type="range" id="set-silence" min="300" max="1600" step="50" />
+      <p class="hint">Shorter means lines appear sooner but sentences get chopped.</p>
+    </div>
+    <div class="field">
+      <label for="set-threshold">Quietest sound counted as speech <span id="threshold-value" class="value"></span></label>
+      <input type="range" id="set-threshold" min="0.004" max="0.06" step="0.002" />
+      <p class="hint">Raise this in a noisy room. The app also learns the room tone on its own.</p>
+    </div>
+
+    <h3>My local agent</h3>
+    <label class="check"><input type="checkbox" id="agent-enabled" /> Send transcripts to my own agent</label>
+    <div class="field">
+      <label for="agent-url">Endpoint</label>
+      <input type="text" id="agent-url" />
+      <p class="hint">Any server that speaks the OpenAI chat format: Ollama, LM Studio, llama.cpp, vLLM.</p>
+    </div>
+    <div class="field">
+      <label for="agent-model">Model name</label>
+      <input type="text" id="agent-model" />
+    </div>
+    <div class="field">
+      <label for="agent-key">Key, if your server needs one</label>
+      <input type="password" id="agent-key" />
+    </div>
+    <div class="field">
+      <label for="agent-prompt">What it should do with the transcript</label>
+      <textarea id="agent-prompt" rows="5"></textarea>
+    </div>
+
+    <h3>Model files</h3>
+    <button id="open-models" class="ghost">Open the models folder</button>
+    <p class="hint">Drop a Whisper <code>.pt</code> file here to avoid downloading it.</p>
+  </aside>
+
+  <script src="worklet-source.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

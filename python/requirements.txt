@@ -1,0 +1,18 @@
+# Dependencies for the speech engine.
+#
+# Whisper itself is not listed: a copy of the source lives in
+# python/vendor/whisper-src and is imported from there, so the app always runs
+# the exact version that shipped with it.
+#
+# ffmpeg is deliberately absent. Audio arrives from the app as raw samples and
+# goes straight into the model, so there is no audio file to decode.
+
+numpy
+tqdm
+more-itertools
+tiktoken
+numba
+websockets>=12.0
+
+# torch is installed separately by the setup script, because the right build
+# depends on whether you have an NVIDIA card. See scripts/setup.ps1.
