@@ -1,248 +1,130 @@
-# Arabic Live Notes
+# Arabic Live Notes — Classroom Recording, Transcription & Review
 
-For following a class taught in Arabic.
-
-The top half listens to the teacher and writes what they said in English, line
-by line, as they say it. Turn on **Read aloud** and it also speaks each line
-into your headphones, so you can listen rather than read.
-
-The bottom half is the opposite: you talk, it writes. The text sits in an
-editable box with a copy button, ready to paste into a prompt, a document or
-another tool.
-
-Everything runs on your own machine. No audio ever leaves the computer.
+A standalone classroom recording, live transcription, translation, timestamped note-taking, and review application for lectures taught in Arabic.
 
 ---
 
-## Starting it
+## Key Capabilities
 
-Unzip the folder somewhere permanent — your Documents folder is fine, but do
-not run it from inside the zip viewer.
+- **Live Classroom Transcription**: Listens to the teacher's voice and displays verified Arabic source text and English translations in real time.
+- **Durable Local-First Recording**: Audio timeslices (`MediaRecorder` Opus stream), finalized speech segments, and notes write continuously to local disk (`storage/recordings/<recording-id>/`), surviving unexpected crashes and system restarts.
+- **Lossless Sequential TTS**: Speaks English translations into your headphones in strict sequential FIFO order without dropping lines. Speaking speed is adjustable (`0.6x`–`2.0x`).
+- **Audio Output Monitoring Switch**: Toggle between `[ Audio: English ]` (TTS audible, original muted) and `[ Audio: Original ]` (original lecture audio audible, TTS muted) on the fly without interrupting recognition or clearing buffers.
+- **Live Timestamped Notes**: Take notes during class that automatically link to the exact audio playback timestamp and corresponding transcript segment.
+- **Recording History & Full-Text Search**: Browse past lectures offline and search instantly across titles, Arabic transcripts, English translations, and notes.
+- **Interactive Playback & Review**: Dedicated detail player with audio seeking, speed controls (`1.0x`–`2.0x`), synchronized transcript jumping, and JSON export.
+- **Optional Google Drive Cloud Backup**: Asynchronous backup to a visible `ArabicLiveNotes Recordings` folder in Google Drive using secure desktop OAuth 2.0 PKCE (`S256`), narrow `drive.file` scope, and Windows DPAPI encrypted token storage.
+
+---
+
+## Starting the Application
+
+Unzip the folder somewhere permanent — your Documents or dedicated directory is fine, but do not run it from inside the zip viewer.
 
 Then **double-click `Arabic Live Notes.bat`**.
 
-The first time, it installs everything and puts an **Arabic Live Notes** icon
-on your desktop. That takes a while, mostly downloading. Leave it alone until
-it says *Ready*.
+The first time, it installs prerequisites, initializes the Python engine, and places an **Arabic Live Notes** shortcut on your desktop.
 
-After that, double-click the desktop icon. The app opens with no console
-window.
+After that, launch via the desktop shortcut or batch script.
 
-If something breaks later, double-click **`Repair.bat`**.
-
-### What it needs first
-
-Two things, and the launcher tells you if either is missing, with the download
-link:
-
-- **Python** 3.9 or newer. On the installer's first screen, tick
-  **Add python.exe to PATH**. That tick box is the step people miss.
-- **Node.js**, the LTS version, default options.
-
-### What it downloads
-
-| Piece | Size |
-|---|---|
-| PyTorch, CUDA build | ~2.5 GB |
-| Electron | ~150 MB |
-| `large-v3` speech model | ~3 GB |
-
-These are not in the zip because the right PyTorch build depends on your
-graphics card, Electron differs per operating system, and the model is a
-trade-off between accuracy and speed. The launcher works all of that out by
-running `nvidia-smi`, and picks for you.
-
-There is no ffmpeg in that list. Most Whisper front-ends need it to decode
-audio files; this one sends raw samples straight to the model.
-
-### On your machine specifically
-
-You have an **RTX 4050 and an i7**, so the launcher installs the CUDA build and
-chooses **`large-v3`**, the most accurate model. At half precision it needs
-roughly 3 GB of video memory, which fits your 6 GB comfortably, and it will run
-several times faster than real time. That is the right setup for a lecture.
+If any dependencies break later, double-click **`Repair.bat`**.
 
 ---
 
-## About "100% accurate"
+## System Requirements
 
-It will not be, and no speech tool is. I would rather say so now than have you
-find out during a class.
-
-What you can expect from `large-v3` on clear lecture audio is roughly **90–95%
-of words correct**, with meaning that is almost always right even where
-individual words are not. What pushes it lower:
-
-- **Proper nouns and technical terms.** Names of people, places and specialised
-  vocabulary are the most common errors.
-- **Dialect.** Whisper is strongest on Modern Standard Arabic. Gulf, Egyptian
-  and Levantine dialects are noticeably harder, and a teacher moving between
-  dialect and MSA mid-sentence is harder still.
-- **Room audio.** A microphone pointed at a classroom picks up echo and chairs.
-  Capturing the audio stream directly is much better than recording the room.
-- **Overlapping speakers.** Two people at once degrades it sharply.
-
-Two things in the app help:
-
-- Turn on **Also show the original Arabic under each line** in Settings. When an
-  English line looks wrong, you can see what was actually said. For a language
-  class this is worth the extra delay on its own — you are there to learn the
-  Arabic, not only to bypass it.
-- **Polish with my agent** sends the transcript to your local model, which can
-  repair recognition errors from context.
-
-Treat the transcript as a very good set of notes, not as a court record.
+- **Windows 10 / 11** (64-bit)
+- **Python 3.9+** (ensure *Add python.exe to PATH* is checked)
+- **Node.js LTS**
+- **NVIDIA GPU** (recommended, e.g. RTX 4050+ with 6 GB VRAM for `large-v3` CUDA acceleration)
 
 ---
 
-## Following a class
+## Application Navigation
 
-1. Open the app.
-2. Under **Them, in English**, choose where the teacher's voice comes from:
-   - **Computer sound (meeting audio)** for an online class, a recording or a
-     video. This captures what your speakers are playing, including through
-     headphones. Best quality, because no microphone is involved.
-   - A **microphone** for a teacher in the room with you.
-3. Press **Start listening**.
-4. Tick **Read aloud in English** if you want to hear it as well as read it.
+The application uses an intuitive navigation drawer accessible via the top-left hamburger menu (`☰`):
 
-Lines appear when the teacher pauses, roughly one per sentence, timestamped.
-
-### Read aloud
-
-The voice comes from Windows, so there is nothing extra to install. Choose which
-voice and how fast in Settings, under *Reading aloud*.
-
-One behaviour worth knowing: **if the reading falls behind the teacher, older
-lines are skipped.** Only the three most recent lines are ever queued. This is
-deliberate — in a live class, hearing a sentence from two minutes ago is worse
-than missing it. If it skips too often, raise the speaking speed, or turn
-reading off and read the text instead.
-
-The line being spoken has a teal bar down its left edge. **Stop reading**
-silences it immediately without stopping transcription.
-
-If you see *No English voice installed*, open Windows Settings, then
-Time & language, then Speech, and add an English voice.
+- **🎙️ Live Recording & Classroom**: Active workspace showing the live translation stage, dictation deck, level meters, audio output switch, and live timestamped notes sidebar.
+- **➕ New Recording Session**: Starts a new persistent lecture recording with custom title and language settings.
+- **📚 Recording History**: Browse, search, review, back up, or delete past classroom recordings.
+- **⚙️ Settings & Storage**: Configure speech models (`large-v3`, `small`, etc.), VAD silence/threshold sliders, TTS voice/rate, local storage paths, and Google Drive connection.
 
 ---
 
-## Dictating to paste elsewhere
+## Classroom Workflow
 
-Press **Start dictating** and talk. Your words land in the lower box, which is a
-normal editable text field — fix anything, then press **Copy**.
-
-By default your speech is translated to English as well, so you can speak Arabic
-and paste English. If you would rather have what you said written as you said
-it, set *Write my words as* to *The language I spoke* in Settings.
-
-Both halves work at the same time. They share one model and take turns, so heavy
-dictation slows the top half slightly. On your GPU that is unlikely to show.
-
----
-
-## Settings worth changing
-
-**Language they speak** — leave this on Arabic rather than *Detect each time*.
-Detection is unreliable on short pieces of speech, and this app deliberately
-works in short pieces. Setting it explicitly is the single biggest accuracy win
-available to you.
-
-**Pause before a line is finished** (0.70s) — how long a silence must be before
-a sentence counts as over. Lengthen it for a slow, deliberate lecturer; shorten
-it if lines feel sluggish.
-
-**Quietest sound counted as speech** (0.012) — raise it in a noisy room. The app
-also learns your room tone continuously and floats its own threshold above it.
-
-**Model** — `large-v3` is already chosen for you. `medium` gives lower latency.
-Avoid **`turbo`**: it was distilled on transcription data only and its English
-translation is noticeably worse.
-
-Three behaviours are not adjustable, because they are what make it reliable:
-audio from a third of a second *before* speech is kept, so word beginnings are
-never clipped; anything with under 0.4 seconds of real voice is discarded, so
-coughs never reach the model; and since nobody pauses for 18 seconds, speech is
-cut on the clock at that point so the display keeps moving.
+1. Open the application.
+2. Select your audio input:
+   - **Computer sound (meeting audio)**: Captures meeting sound or video stream directly in high fidelity.
+   - **Microphone**: For an in-person teacher in the classroom.
+3. Choose your audio monitoring mode:
+   - **Audio: English**: Hear translated English spoken through TTS.
+   - **Audio: Original**: Hear the teacher's authentic voice directly.
+4. Press **Start listening**.
+5. During the lecture:
+   - Real-time Arabic text and English translations land sequentially.
+   - Type notes into the right sidebar and press Enter to timestamp them against the lecture clock.
+   - The top rail displays recording status (`REC` / `PAUSED`), elapsed timer, and title.
+6. Press **Stop & Save** when class ends.
+   - All audio, transcripts, translations, and notes are saved locally to `storage/recordings/`.
+   - If Google Drive is connected, an asynchronous background backup syncs to your Drive.
 
 ---
 
-## Your own agent
+## Reviewing Past Lectures
 
-**Polish with my agent** appears once you enable it in Settings. Point it at any
-server speaking the OpenAI chat format — Ollama, LM Studio, llama.cpp, vLLM —
-and it sends the transcript over and puts the cleaned result in the notes box.
-The default instruction asks for tidy notes with technical terms intact and
-nothing invented. Change it to whatever you need, for example a vocabulary list
-of every Arabic word the teacher used.
-
-The request goes from the app's main process, so there is no browser
-cross-origin setup needed on your server.
+1. Open **Recording History** from the drawer or top rail (`History`).
+2. Search for any term across titles, Arabic phrases, English translations, or your personal notes.
+3. Click any lecture card to open **Lecture Details**:
+   - Use the interactive audio player to listen and seek.
+   - Click any transcript segment to jump audio directly to that moment.
+   - Click any timestamped note (`⏱ 04:12`) to seek the player to when you wrote that note.
+   - Export lecture data as JSON or delete local/cloud copies.
 
 ---
 
-## When something goes wrong
+## Local Storage & Cloud Security
 
-**Double-clicking does nothing** — right-click `Arabic Live Notes.bat` and pick
-*Run as administrator* once. If Windows SmartScreen blocks it, choose *More
-info*, then *Run anyway*; the file is a plain text script you can open and read
-first.
-
-**"Python is not installed" but you installed it** — the *Add python.exe to
-PATH* box was not ticked. Re-run the Python installer, choose *Modify*, and
-enable it.
-
-**Nothing appears when the teacher speaks** — watch the level meter beside
-*Them*. Not moving means the wrong source is selected. Moving with no text means
-the threshold is too high, or the model is still loading on the first start.
-
-**Text appears but is nonsense** — set the language explicitly rather than
-*Detect each time*.
-
-**Lines fall further and further behind** — this should not happen on your GPU.
-Check the status bar says *Running large-v3 on your graphics card*. If it says
-*on the processor*, run `Repair.bat`.
-
-**The same phrase repeats forever** — Whisper looping on silence. Each utterance
-is already decoded independently and the common hallucinations are filtered, but
-raise the threshold slider if you meet a new one.
+- **Local Storage is Primary**: The app works 100% offline. Recordings are saved in `storage/recordings/<recording-id>/` outside ASAR packages.
+- **Zero Plaintext Tokens**: Google OAuth refresh tokens are stored exclusively in `storage/database/auth.enc` encrypted via Windows DPAPI (fail-closed).
+- **Narrow Scopes**: Requests only `https://www.googleapis.com/auth/drive.file` and `userinfo.email`.
+- **System Browser PKCE**: Authenticates via the default system browser with dynamic PKCE code challenges on an ephemeral loopback port (`http://127.0.0.1:<port>/callback`). Zero client secrets are required or stored.
 
 ---
 
-## Checking it still works
+## Verifying Pipeline & Regression Tests
 
-```
+Run the complete test suite locally:
+
+```bash
+# VAD & boundary preservation
 node scripts/test-vad.js
-python scripts/test_protocol.py
-```
 
-Neither needs a model or a microphone. The first feeds synthetic audio through
-the real sentence splitter; the second stands in a fake model and checks the
-app-to-engine conversation.
+# Whisper Python engine protocol
+python scripts/test_protocol.py
+
+# End-to-end pipeline invariants
+node scripts/test_pipeline_e2e.js
+
+# Production stress & hardware mic isolation
+node scripts/production_validation_suite.js
+
+# Field quality & audio routing
+node scripts/test_field_quality.js
+
+# Live continuous classroom acceptance
+node scripts/final_live_acceptance_suite.js
+
+# Recordings framework & diarization readiness
+node scripts/test_recordings_framework.js
+
+# Storage, crash recovery, PKCE & 12 security checks
+node scripts/test_storage_and_cloud.js
+```
 
 ---
 
-## How it fits together
+## License
 
-```
-microphone / computer sound
-        |
-   AudioWorklet          64 ms blocks, mono, 16 kHz
-        |
-   sentence splitter     pre-roll, onset, silence, ceiling
-        |
-   WebSocket             [length][JSON header][16-bit PCM]
-        |
-   Python engine         one model, one worker, one at a time
-        |
-   English text  --->  the screen, and the Windows voice
-```
-
-- `Arabic Live Notes.bat` → `scripts/launcher.ps1` — installs and starts.
-- `electron/main.js` — window, supervises the Python engine, saves files.
-- `renderer/app.js` — capture, splitter, both panes, reading aloud.
-- `python/asr_server.py` — the engine.
-- `python/vendor/whisper-src` — OpenAI's Whisper source, unmodified.
-
-Whisper is MIT licensed by OpenAI; the licence is at
-`python/vendor/whisper-src/LICENSE`.
+- Whisper engine is MIT licensed by OpenAI (`python/vendor/whisper-src/LICENSE`).
+- Arabic Live Notes is licensed for personal and educational classroom use.
